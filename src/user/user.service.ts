@@ -1,22 +1,38 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { RegisterDto } from 'src/auth/dto/registerUser.dto';
+import { CreateUserDto } from 'src/user/dto/createUser.dto';
 import { User } from './schemas/user.schema';
 import { Model } from 'mongoose';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+  ) {}
 
-  async createUser(registerUserDto: RegisterDto) {
+  async createUser(registerUserDto: CreateUserDto) {
     try {
       return await this.userModel.create(registerUserDto);
     } catch (error: unknown) {
-      console.log(error);
-      const e = error as { code: number };
-      if (e.code === 11000) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: number }).code === 11000
+      ) {
         throw new ConflictException('Email is already taken!');
       }
+
+      throw new InternalServerErrorException('Failed to create user');
     }
+  }
+
+  async findByEmailWithPass(email: string) {
+    return this.userModel.findOne({ email }).select('+password');
   }
 }
