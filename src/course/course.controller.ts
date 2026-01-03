@@ -1,25 +1,51 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from 'src/auth/roles.decorator';
+import { Role } from 'src/user/user.types';
 
 @Controller('course')
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
   @Post()
-  create(@Body() createCourseDto: CreateCourseDto) {
-    return this.courseService.create(createCourseDto);
+  @UseGuards(AuthGuard)
+  @Roles(Role.Admin)
+  async create(@Body() createCourseDto: CreateCourseDto) {
+    const result = await this.courseService.create(createCourseDto);
+    return {
+      message: 'Course created successfully!',
+      data: result,
+    };
   }
 
   @Get()
-  findAll() {
-    return this.courseService.findAll();
+  async findAll() {
+    const result = await this.courseService.findAll();
+    return {
+      message: 'All courses fetched successfully!',
+      data: result,
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.courseService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.courseService.findOne(+id);
+    return {
+      message: 'Single course fetched successfully!',
+      data: result,
+    };
   }
 
   @Patch(':id')
