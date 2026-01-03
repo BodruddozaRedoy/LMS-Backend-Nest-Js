@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET as string,
       });
 
-      console.log(payload);
+      // console.log(payload);
       // 💡 We're assigning the payload to the request object here
       // so that we can access it in our route handlers
       request['user'] = payload;
