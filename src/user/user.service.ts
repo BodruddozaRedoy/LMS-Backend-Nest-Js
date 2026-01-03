@@ -35,4 +35,7 @@ export class UserService {
   async findByEmailWithPass(email: string) {
     return this.userModel.findOne({ email }).select('+password');
   }
+  async getUserById(id: string) {
+    return this.userModel.findOne({ _id: id });
+  }
 }
