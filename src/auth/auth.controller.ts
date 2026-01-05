@@ -24,6 +24,7 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerUserDto: CreateUserDto) {
     //logic for user register
+    console.log(registerUserDto);
     const result = await this.authService.registerUser(registerUserDto);
     return {
       message: 'User created successfully!',
