@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -19,15 +19,31 @@ export class CourseService {
     return await this.courseModel.find();
   }
 
-  async findOne(id: number) {
-    return await this.courseModel.findById({ _id: id });
+  async findOne(id: string) {
+    const course = await this.courseModel.findById(id);
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+    return course;
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  async update(id: string, updateCourseDto: UpdateCourseDto) {
+    const course = await this.courseModel.findByIdAndUpdate(
+      id,
+      updateCourseDto,
+      { new: true, runValidators: true },
+    );
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+    return course;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+  async remove(id: string) {
+    const course = await this.courseModel.findByIdAndDelete(id);
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+    return course;
   }
 }

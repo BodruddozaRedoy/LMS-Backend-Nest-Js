@@ -1,41 +1,76 @@
 import {
-  ConflictException,
   Injectable,
-  InternalServerErrorException,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { CreateUserDto } from 'src/user/dto/createUser.dto';
-import { User } from './schemas/user.schema';
 import { Model } from 'mongoose';
+import { User } from './schemas/user.schema'; // Import the Class, not the Schema object
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<User>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
 
-  async createUser(registerUserDto: CreateUserDto) {
-    try {
-      return await this.userModel.create(registerUserDto);
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code: number }).code === 11000
-      ) {
-        throw new ConflictException('Email is already taken!');
-      }
+  // Create a new user (Usually called by Admin or internally)
+  async createUser(createUserDto: any): Promise<User> {
+    const { email, password } = createUserDto;
 
-      throw new InternalServerErrorException('Failed to create user');
+    const existingUser = await this.userModel.findOne({ email });
+    if (existingUser) throw new BadRequestException('Email already registered');
+
+    // Hash password if it's a plain string
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new this.userModel({
+      ...createUserDto,
+      password: hashedPassword,
+    });
+    return user.save();
+  }
+
+  // Find a user by email (For general use)
+  // Returning Promise<User | null> is better so logic can handle nulls without crashing
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userModel.findOne({ email }).exec();
+  }
+
+  // Find a user by email with password (Internal use for Login)
+  async findByEmailWithPass(email: string): Promise<User | null> {
+    // .select('+password') is only needed if you set "select: false" in your schema
+    return this.userModel.findOne({ email }).select('+password').exec();
+  }
+
+  // Get all users
+  async findAllUsers(): Promise<User[]> {
+    return this.userModel.find().select('-password').exec();
+  }
+
+  // Get user by ID
+  async getUserById(id: string): Promise<User> {
+    const user = await this.userModel.findById(id).select('-password').exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
+    return user;
   }
 
-  async findByEmailWithPass(email: string) {
-    return this.userModel.findOne({ email }).select('+password');
+  // Update User Profile
+  async updateProfile(id: string, updateData: any): Promise<User> {
+    const user = await this.userModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .select('-password');
+
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
-  async getUserById(id: string) {
-    return this.userModel.findOne({ _id: id });
+
+  // Delete User
+  async deleteUser(id: string): Promise<{ message: string }> {
+    const result = await this.userModel.findByIdAndDelete(id);
+    if (!result) throw new NotFoundException('User not found');
+    return { message: 'User deleted successfully' };
   }
 }

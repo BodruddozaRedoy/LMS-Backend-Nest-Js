@@ -42,7 +42,7 @@ export class CourseController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const result = await this.courseService.findOne(+id);
+    const result = await this.courseService.findOne(id);
     return {
       message: 'Single course fetched successfully!',
       data: result,
@@ -50,12 +50,24 @@ export class CourseController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
-    return this.courseService.update(+id, updateCourseDto);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
+    const result = await this.courseService.update(id, updateCourseDto);
+    return {
+      message: 'Course updated successfully!',
+      data: result,
+    };
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.courseService.remove(+id);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  async remove(@Param('id') id: string) {
+    const result = await this.courseService.remove(id);
+    return {
+      message: 'Course deleted successfully!',
+      data: result,
+    };
   }
 }
